@@ -1,5 +1,5 @@
 <?php
-
+/*Cualquier tipo de descuento que exista en este sistema DEBE tener estas 3 funciones: saber si aplica, calcular cuánto descontar y decir su nombre. */
 namespace App\Domain\Strategies;
 
 interface DiscountStrategy
