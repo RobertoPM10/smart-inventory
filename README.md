@@ -1,6 +1,6 @@
 # Smart Inventory & POS System (Clean Architecture + TDD)
 
-Un sistema profesional de **Punto de Venta e Inventario** desarrollado con **Laravel 11**, diseñado bajo los principios de **Clean Architecture**, **SOLID** y **Desarrollo Guiado por Pruebas (TDD)**. 
+Un sistema profesional de **Punto de Venta e Inventario** desarrollado con **Laravel**, diseñado bajo los principios de **Clean Architecture**, **SOLID** y **Desarrollo Guiado por Pruebas (TDD)**. 
 
 El proyecto expone una **API REST desacoplada** preparada para ser consumida por cualquier cliente (SPA, Mobile, Frontend independiente) e incluye un panel administrativo reactivo como cliente integrado.
 
