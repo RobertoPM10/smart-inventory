@@ -8,12 +8,10 @@ use Tests\TestCase;
 
 class SaleApiTest extends TestCase
 {
-    // Reinicia la base de datos de pruebas en cada ejecucion
     use RefreshDatabase;
 
-    public function test_it_creates_a_sale_successfully_via_api(): void
+    public function test_it_creates_and_persists_a_sale_successfully_via_api(): void
     {
-        // Inserta un producto inicial en la base de datos
         $product = ProductModel::create([
             'name' => 'Teclado Mecanico',
             'sku' => 'TEC-001',
@@ -21,7 +19,6 @@ class SaleApiTest extends TestCase
             'stock' => 10,
         ]);
 
-        // Envia una peticion POST a la ruta de la API
         $response = $this->postJson('/api/sales', [
             'items' => [
                 [
@@ -31,7 +28,6 @@ class SaleApiTest extends TestCase
             ]
         ]);
 
-        // Verifica que la respuesta sea HTTP 201 Created
         $response->assertStatus(201)
             ->assertJson([
                 'message' => 'Venta registrada con éxito.',
@@ -43,7 +39,21 @@ class SaleApiTest extends TestCase
                 ]
             ]);
 
-        // Confirma que el stock cambio en la base de datos de 10 a 8
+        // Validar registro en tabla sales
+        $this->assertDatabaseHas('sales', [
+            'gross_total' => 1000.00,
+            'net_total' => 1000.00,
+        ]);
+
+        // Validar registro en tabla sale_items
+        $this->assertDatabaseHas('sale_items', [
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'unit_price' => 500.00,
+            'subtotal' => 1000.00,
+        ]);
+
+        // Validar actualización de stock de producto
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'stock' => 8,

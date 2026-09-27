@@ -3,24 +3,21 @@
 namespace App\Application\UseCases;
 
 use App\Application\Services\DiscountEngine;
+use App\Domain\Entities\Sale;
+use App\Domain\Entities\SaleItem;
 use App\Domain\Repositories\ProductRepositoryInterface;
+use App\Domain\Repositories\SaleRepositoryInterface;
 use InvalidArgumentException;
 
 class CreateSaleUseCase
 {
-    // Inyectamos el repositorio abstracto y el motor de descuentos.
-    // Esto respeta el principio de Inversión de Dependencias (D de SOLID).
+    // Inyectamos ambos repositorios mediante Inversión de Dependencias (SOLID)
     public function __construct(
         private ProductRepositoryInterface $productRepository,
+        private SaleRepositoryInterface $saleRepository,
         private DiscountEngine $discountEngine
     ) {}
 
-    /**
-     * Ejecuta el proceso completo de registro de venta.
-     * 
-     * @param array $items Estructura esperada: [['product_id' => 1, 'quantity' => 2], ...]
-     * @return array Resumen financiero de la venta realizada.
-     */
     public function execute(array $items): array
     {
         if (empty($items)) {
@@ -29,44 +26,65 @@ class CreateSaleUseCase
 
         $grossTotal = 0.0;
         $processedProducts = [];
+        $domainSaleItems = [];
 
-        // 1. Fase de Validación y Cálculo Bruto
+        // 1. Validar productos, calcular sublocales y descontar stock
         foreach ($items as $item) {
             $productId = $item['product_id'];
             $quantity = $item['quantity'];
 
-            // Buscamos el producto mediante la interfaz del repositorio
             $product = $this->productRepository->findById($productId);
 
             if (!$product) {
                 throw new InvalidArgumentException("El producto con ID {$productId} no existe.");
             }
 
-            // Regla de negocio: La entidad valida y reduce su propio stock interno
+            // Descontar stock en el modelo de dominio
             $product->decreaseStock($quantity);
 
-            // Sumamos al total bruto acumulado
-            $grossTotal += $product->getPrice() * $quantity;
+            $unitPrice = $product->getPrice();
+            $subtotal = $unitPrice * $quantity;
+            $grossTotal += $subtotal;
 
-            // Guardamos la referencia para actualizar persisntencia al final
             $processedProducts[] = $product;
+
+            // Instanciar entidad de dominio SaleItem
+            $domainSaleItems[] = new SaleItem(
+                id: null,
+                productId: $productId,
+                quantity: $quantity,
+                unitPrice: $unitPrice,
+                subtotal: $subtotal
+            );
         }
 
-        // 2. Fase de Aplicación de Reglas de Descuento
-        // El motor evalúa las estrategias configuradas sobre el listado y monto bruto
+        // 2. Aplicar motor de descuentos
         $discountTotal = $this->discountEngine->calculateTotalDiscount($items, $grossTotal);
+        $netTotal = $grossTotal - $discountTotal;
 
-        // 3. Fase de Persistencia (Guardar cambios de stock)
+        // 3. Persistir cambios de stock de los productos
         foreach ($processedProducts as $product) {
             $this->productRepository->save($product);
         }
 
-        // 4. Retornamos la estructura de confirmación
+        // 4. Crear y guardar el registro histórico de la venta
+        $sale = new Sale(
+            id: null,
+            grossTotal: $grossTotal,
+            discountTotal: $discountTotal,
+            netTotal: $netTotal,
+            items: $domainSaleItems
+        );
+
+        $savedSale = $this->saleRepository->save($sale);
+
+        // 5. Retornar respuesta
         return [
-            'gross_total' => $grossTotal,
-            'discount_total' => $discountTotal,
-            'net_total' => $grossTotal - $discountTotal,
-            'items_count' => count($items),
+            'sale_id' => $savedSale->getId(),
+            'gross_total' => $savedSale->getGrossTotal(),
+            'discount_total' => $savedSale->getDiscountTotal(),
+            'net_total' => $savedSale->getNetTotal(),
+            'items_count' => count($savedSale->getItems()),
         ];
     }
 }
