@@ -18,7 +18,7 @@ El proyecto expone una **API REST desacoplada** preparada para ser consumida por
 
 ## 🛠️ Stack Tecnológico & Arquitectura
 
-* **Backend:** PHP 8.3+ / Laravel 11
+* **Backend:** PHP 8.4+ / Laravel 13
 * **Base de Datos:** SQLite (Entorno local y pruebas aisladas)
 * **Frontend:** Blade, Tailwind CSS, Alpine.js
 * **Testing:** PHPUnit / Pest (100% Test Coverage en reglas de negocio y endpoints)
